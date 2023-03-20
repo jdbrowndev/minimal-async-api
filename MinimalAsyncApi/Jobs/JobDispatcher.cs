@@ -2,7 +2,7 @@
 
 public interface IJobDispatcher
 {
-	Task<TResult> Dispatch<TJob, TResult>(TJob job, CancellationToken cancellationToken) where TJob : Job<TResult>;
+	Task<TResult> Dispatch<TResult>(Job<TResult> job, CancellationToken cancellationToken);
 }
 
 public class JobDispatcher : IJobDispatcher
@@ -14,13 +14,16 @@ public class JobDispatcher : IJobDispatcher
 		_serviceProvider = serviceProvider;
 	}
 
-	public async Task<TResult> Dispatch<TJob, TResult>(TJob job, CancellationToken cancellationToken) where TJob : Job<TResult>
+	public async Task<TResult> Dispatch<TResult>(Job<TResult> job, CancellationToken cancellationToken)
 	{
-		var runner = _serviceProvider.GetService<IJobRunner<TJob, TResult>>();
-		if (runner == null)
-			throw new ArgumentException($"Unable to retrieve job runner for {job.GetType().FullName}");
+		var jobType = job.GetType();
+		var runnerType = typeof(IJobRunner<,>).MakeGenericType(jobType, typeof(TResult));
+		dynamic runner = _serviceProvider.GetService(runnerType);
 
-		var result = await runner.Run(job, cancellationToken);
+		if (runner == null)
+			throw new ArgumentException($"Unable to retrieve job runner for {jobType.FullName}");
+
+		var result = await runner.Run((dynamic)job, cancellationToken);
 		return result;
 	}
 }

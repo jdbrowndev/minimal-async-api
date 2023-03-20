@@ -5,7 +5,7 @@ namespace MinimalAsyncApi.Services;
 
 public interface IJobHostedService
 {
-	void Run<TJob, TResult>(TJob job) where TJob : Job<TResult>;
+	void Run<TResult>(Job<TResult> job);
 	string GetStatus(string jobId);
 	bool Cancel(string jobId);
 	object GetResult(string jobId);
@@ -51,7 +51,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 		return Task.CompletedTask;
 	}
 
-	public void Run<TJob, TResult>(TJob job) where TJob : Job<TResult>
+	public void Run<TResult>(Job<TResult> job)
 	{
 		var jobId = job.Id;
 		var jobName = job.GetType().FullName;
@@ -66,7 +66,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 				{
 					try
 					{
-						var result = await _jobDispatcher.Dispatch<TJob, TResult>(job, cts.Token);
+						var result = await _jobDispatcher.Dispatch(job, cts.Token);
 						return (object)result;
 					}
 					catch (Exception e)
