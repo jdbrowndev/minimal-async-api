@@ -2,7 +2,7 @@
 
 public interface IJobDispatcher
 {
-	Task<TResult> Dispatch<TResult>(Job<TResult> job, CancellationToken cancellationToken);
+	Task<TResult> Dispatch<TResult>(IJob<TResult> job, CancellationToken cancellationToken);
 }
 
 public class JobDispatcher : IJobDispatcher
@@ -14,7 +14,7 @@ public class JobDispatcher : IJobDispatcher
 		_serviceProvider = serviceProvider;
 	}
 
-	public async Task<TResult> Dispatch<TResult>(Job<TResult> job, CancellationToken cancellationToken)
+	public async Task<TResult> Dispatch<TResult>(IJob<TResult> job, CancellationToken cancellationToken)
 	{
 		var jobType = job.GetType();
 		var runnerType = typeof(IJobRunner<,>).MakeGenericType(jobType, typeof(TResult));

@@ -1,5 +1,5 @@
 ﻿namespace MinimalAsyncApi.Jobs;
 
-public abstract class Job<TResult>
+public interface IJob<TResult>
 {
 }

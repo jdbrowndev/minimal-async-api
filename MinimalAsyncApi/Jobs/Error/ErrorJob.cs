@@ -1,5 +1,5 @@
 ﻿namespace MinimalAsyncApi.Jobs.Error;
 
-public class ErrorJob : Job<ErrorJobResult>
+public class ErrorJob : IJob<ErrorJobResult>
 {
 }

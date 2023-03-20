@@ -17,7 +17,7 @@ public interface IBackgroundJob
 public class BackgroundJob<TResult> : IBackgroundJob
 {
     public string Id { get; init; }
-    public Job<TResult> Job { get; init; }
+    public IJob<TResult> Job { get; init; }
 	public Task<TResult> Task { get; init; }
 	public CancellationTokenSource CancellationTokenSource { get; init; }
 

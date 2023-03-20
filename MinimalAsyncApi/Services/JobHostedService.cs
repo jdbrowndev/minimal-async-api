@@ -5,7 +5,7 @@ namespace MinimalAsyncApi.Services;
 
 public interface IJobHostedService
 {
-	string Run<TResult>(Job<TResult> job);
+	string Run<TResult>(IJob<TResult> job);
 	string GetStatus(string jobId);
 	bool Cancel(string jobId);
 	object GetResult(string jobId);
@@ -52,7 +52,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 		return Task.CompletedTask;
 	}
 
-	public string Run<TResult>(Job<TResult> job)
+	public string Run<TResult>(IJob<TResult> job)
 	{
 		var jobId = Guid.NewGuid().ToString();
 		var jobName = job.GetType().FullName;
