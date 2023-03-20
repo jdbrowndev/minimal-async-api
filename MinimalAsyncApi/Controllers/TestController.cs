@@ -24,9 +24,9 @@ public class TestController : Controller
 			MaxValue = maxValue
 		};
 
-		_jobService.Run(job);
+		var jobId = _jobService.Run(job);
 
-		return job.Id;
+		return jobId;
 	}
 
 	[HttpGet]
@@ -34,9 +34,9 @@ public class TestController : Controller
 	{
 		var job = new ErrorJob();
 
-		_jobService.Run(job);
+		var jobId = _jobService.Run(job);
 
-		return job.Id;
+		return jobId;
 	}
 
 	[HttpGet]
@@ -44,8 +44,8 @@ public class TestController : Controller
 	{
 		var job = new LongRunningJob();
 
-		_jobService.Run(job);
+		var jobId = _jobService.Run(job);
 
-		return job.Id;
+		return jobId;
 	}
 }

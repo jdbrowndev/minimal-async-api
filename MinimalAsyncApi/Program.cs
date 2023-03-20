@@ -8,7 +8,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddSingleton<IRandomService, RandomService>();
 builder.Services.AddTransient<IJobRunner<RandomIntJob, RandomIntJobResult>, RandomIntJobRunner>();
 builder.Services.AddTransient<IJobRunner<ErrorJob, ErrorJobResult>, ErrorJobRunner>();
 builder.Services.AddTransient<IJobRunner<LongRunningJob, LongRunningJobResult>, LongRunningJobRunner>();
@@ -16,6 +15,7 @@ builder.Services.AddTransient<IJobRunner<LongRunningJob, LongRunningJobResult>, 
 builder.Services.AddTransient<IJobDispatcher, JobDispatcher>();
 builder.Services.AddSingleton<IJobHostedService, JobHostedService>();
 builder.Services.AddHostedService(ctx => (JobHostedService) ctx.GetService<IJobHostedService>());
+builder.Services.AddSingleton<IRandomService, RandomService>();
 
 builder.Services.AddControllers();
 

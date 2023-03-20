@@ -1,11 +1,5 @@
 ﻿namespace MinimalAsyncApi.Jobs;
 
-public abstract class Job<TResult> : IJob
+public abstract class Job<TResult>
 {
-	public string Id { get; private set; }
-
-	public Job()
-	{
-		Id = Guid.NewGuid().ToString();
-	}
 }

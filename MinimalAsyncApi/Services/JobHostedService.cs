@@ -5,10 +5,11 @@ namespace MinimalAsyncApi.Services;
 
 public interface IJobHostedService
 {
-	void Run<TResult>(Job<TResult> job);
+	string Run<TResult>(Job<TResult> job);
 	string GetStatus(string jobId);
 	bool Cancel(string jobId);
 	object GetResult(string jobId);
+	TResult GetResult<TResult>(string jobId);
 }
 
 public class JobHostedService : IHostedService, IJobHostedService
@@ -38,7 +39,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 
 		foreach (var id in _jobIds)
 		{
-			_jobs.TryGetValue<BackgroundJob>(id, out var job);
+			_jobs.TryGetValue<IBackgroundJob>(id, out var job);
 			if (job != null)
 			{
 				job.CancellationTokenSource.Cancel();
@@ -51,23 +52,24 @@ public class JobHostedService : IHostedService, IJobHostedService
 		return Task.CompletedTask;
 	}
 
-	public void Run<TResult>(Job<TResult> job)
+	public string Run<TResult>(Job<TResult> job)
 	{
-		var jobId = job.Id;
+		var jobId = Guid.NewGuid().ToString();
 		var jobName = job.GetType().FullName;
 
 		try
 		{
 			var cts = new CancellationTokenSource();
-			var backgroundJob = new BackgroundJob
+			var backgroundJob = new BackgroundJob<TResult>
 			{
+				Id = jobId,
 				Job = job,
 				Task = Task.Run(async () =>
 				{
 					try
 					{
 						var result = await _jobDispatcher.Dispatch(job, cts.Token);
-						return (object)result;
+						return result;
 					}
 					catch (Exception e)
 					{
@@ -82,12 +84,14 @@ public class JobHostedService : IHostedService, IJobHostedService
 				.SetAbsoluteExpiration(DateTime.Now.AddHours(12))
 				.RegisterPostEvictionCallback((key, value, reason, state) =>
 				{
-					var backgroundJob = (BackgroundJob)value;
-					_jobIds.Remove(backgroundJob.Job.Id);
+					var backgroundJob = (IBackgroundJob)value;
+					_jobIds.Remove(backgroundJob.Id);
 					backgroundJob.CancellationTokenSource.Cancel();
 				})
 			);
 			_jobIds.Add(jobId);
+
+			return jobId;
 		}
 		catch (Exception e)
 		{
@@ -98,21 +102,21 @@ public class JobHostedService : IHostedService, IJobHostedService
 
 	public string GetStatus(string jobId)
 	{
-		_jobs.TryGetValue<BackgroundJob>(jobId, out var backgroundJob);
+		_jobs.TryGetValue<IBackgroundJob>(jobId, out var backgroundJob);
 
 		if (backgroundJob == null)
 		{
 			return "Not Found";
 		}
-		else if (!backgroundJob.Task.IsCompleted)
+		else if (!backgroundJob.IsCompleted)
 		{
 			return "Running";
 		}
-		else if (backgroundJob.Task.IsCanceled)
+		else if (backgroundJob.IsCanceled)
 		{
-			return "Cancelled";
+			return "Canceled";
 		}
-		else if (backgroundJob.Task.IsFaulted)
+		else if (backgroundJob.IsFaulted)
 		{
 			return "Error";
 		}
@@ -122,8 +126,8 @@ public class JobHostedService : IHostedService, IJobHostedService
 
 	public bool Cancel(string jobId)
 	{
-		_jobs.TryGetValue<BackgroundJob>(jobId, out var backgroundJob);
-		if (backgroundJob == null || backgroundJob.Task.IsCompleted)
+		_jobs.TryGetValue<IBackgroundJob>(jobId, out var backgroundJob);
+		if (backgroundJob == null || backgroundJob.IsCompleted)
 			return false;
 
 		backgroundJob.CancellationTokenSource.Cancel();
@@ -132,10 +136,20 @@ public class JobHostedService : IHostedService, IJobHostedService
 
 	public object GetResult(string jobId)
 	{
-		_jobs.TryGetValue<BackgroundJob>(jobId, out var backgroundJob);
+		_jobs.TryGetValue<IBackgroundJob>(jobId, out var backgroundJob);
 
-		if (backgroundJob == null || !backgroundJob.Task.IsCompletedSuccessfully)
+		if (backgroundJob == null || !backgroundJob.IsCompletedSuccessfully)
 			return null;
+
+		return backgroundJob.Result;
+	}
+
+	public TResult GetResult<TResult>(string jobId)
+	{
+		_jobs.TryGetValue<BackgroundJob<TResult>>(jobId, out var backgroundJob);
+
+		if (backgroundJob == null || !backgroundJob.IsCompletedSuccessfully)
+			return default;
 
 		return backgroundJob.Task.Result;
 	}
