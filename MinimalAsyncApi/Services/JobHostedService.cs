@@ -1,11 +1,12 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using MinimalAsyncApi.Jobs;
+using MinimalAsyncApi.Services.Models;
 
 namespace MinimalAsyncApi.Services;
 
 public interface IJobHostedService
 {
-	string Run<TResult>(IJob<TResult> job);
+	string Run<TResult>(IJob<TResult> job, string webhookUrl = null);
 	string GetStatus(string jobId);
 	bool Cancel(string jobId);
 	object GetResult(string jobId);
@@ -17,13 +18,15 @@ public class JobHostedService : IHostedService, IJobHostedService
 	private readonly MemoryCache _jobs;
 	private readonly HashSet<string> _jobIds;
 	private readonly IJobDispatcher _jobDispatcher;
+	private readonly IWebhookQueue _webhookQueue;
 	private readonly ILogger<JobHostedService> _logger;
 
-	public JobHostedService(IJobDispatcher jobDispatcher, ILogger<JobHostedService> logger)
+	public JobHostedService(IJobDispatcher jobDispatcher, IWebhookQueue webhookQueue, ILogger<JobHostedService> logger)
 	{
 		_jobs = new MemoryCache(new MemoryCacheOptions());
 		_jobIds = new HashSet<string>();
 		_jobDispatcher = jobDispatcher;
+		_webhookQueue = webhookQueue;
 		_logger = logger;
 	}
 
@@ -48,21 +51,25 @@ public class JobHostedService : IHostedService, IJobHostedService
 
 		_logger.LogInformation("JobHostedService stopped");
 		_jobs.Dispose();
+		_jobIds.Clear();
 
 		return Task.CompletedTask;
 	}
 
-	public string Run<TResult>(IJob<TResult> job)
+	public string Run<TResult>(IJob<TResult> job, string webhookUrl = null)
 	{
 		var jobId = Guid.NewGuid().ToString();
-		var jobName = job.GetType().FullName;
+		var jobName = job.Name;
 
 		try
 		{
 			var cts = new CancellationTokenSource();
-			var backgroundJob = new BackgroundJob<TResult>
+
+			BackgroundJob<TResult> backgroundJob = null;
+			backgroundJob = new BackgroundJob<TResult>
 			{
 				Id = jobId,
+				Name = jobName,
 				Job = job,
 				Task = Task.Run(async () =>
 				{
@@ -75,6 +82,13 @@ public class JobHostedService : IHostedService, IJobHostedService
 					{
 						_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
 						throw;
+					}
+					finally
+					{
+						if (!string.IsNullOrWhiteSpace(webhookUrl))
+						{
+							await _webhookQueue.QueueAsync(new WebhookRequest { Job = backgroundJob, WebhookUrl = webhookUrl });
+						}
 					}
 				}),
 				CancellationTokenSource = cts

@@ -1,10 +1,11 @@
 ﻿using MinimalAsyncApi.Jobs;
 
-namespace MinimalAsyncApi.Services;
+namespace MinimalAsyncApi.Services.Models;
 
 public interface IBackgroundJob
 {
 	public string Id { get; }
+	public string Name { get; }
 	public CancellationTokenSource CancellationTokenSource { get; }
 
 	public bool IsCompleted { get; }
@@ -17,6 +18,7 @@ public interface IBackgroundJob
 public class BackgroundJob<TResult> : IBackgroundJob
 {
     public string Id { get; init; }
+	public string Name { get; init; }
     public IJob<TResult> Job { get; init; }
 	public Task<TResult> Task { get; init; }
 	public CancellationTokenSource CancellationTokenSource { get; init; }

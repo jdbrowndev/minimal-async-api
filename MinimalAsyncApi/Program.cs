@@ -3,6 +3,7 @@ using MinimalAsyncApi.Jobs.Error;
 using MinimalAsyncApi.Jobs.LongRunning;
 using MinimalAsyncApi.Jobs.RandomInt;
 using MinimalAsyncApi.Services;
+using MinimalAsyncApi.Services.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,8 +16,10 @@ builder.Services.AddTransient<IJobRunner<LongRunningJob, LongRunningJobResult>, 
 builder.Services.AddTransient<IJobDispatcher, JobDispatcher>();
 builder.Services.AddSingleton<IJobHostedService, JobHostedService>();
 builder.Services.AddHostedService(ctx => (JobHostedService) ctx.GetService<IJobHostedService>());
-builder.Services.AddSingleton<IRandomService, RandomService>();
+builder.Services.AddSingleton<IWebhookQueue, WebhookQueue>();
+builder.Services.AddHostedService<WebhookHostedService>();
 
+builder.Services.AddSingleton<IRandomService, RandomService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();

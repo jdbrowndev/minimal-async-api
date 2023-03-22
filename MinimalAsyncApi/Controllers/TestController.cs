@@ -16,7 +16,7 @@ public class TestController : Controller
 	}
 
 	[HttpGet]
-	public string GetRandomInt(int minValue, int maxValue)
+	public string GetRandomInt(int minValue, int maxValue, string webhookUrl = null)
 	{
 		var job = new RandomIntJob
 		{
@@ -24,27 +24,27 @@ public class TestController : Controller
 			MaxValue = maxValue
 		};
 
-		var jobId = _jobService.Run(job);
+		var jobId = _jobService.Run(job, webhookUrl);
 
 		return jobId;
 	}
 
 	[HttpGet]
-	public string GetError()
+	public string GetError(string webhookUrl = null)
 	{
 		var job = new ErrorJob();
 
-		var jobId = _jobService.Run(job);
+		var jobId = _jobService.Run(job, webhookUrl);
 
 		return jobId;
 	}
 
 	[HttpGet]
-	public string GetLongRunning()
+	public string GetLongRunning(string webhookUrl = null)
 	{
 		var job = new LongRunningJob();
 
-		var jobId = _jobService.Run(job);
+		var jobId = _jobService.Run(job, webhookUrl);
 
 		return jobId;
 	}
