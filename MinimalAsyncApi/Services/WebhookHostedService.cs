@@ -62,6 +62,7 @@ public class WebhookHostedService : IHostedService
 
         var result = new WebhookResult
         {
+            JobId = job.Id,
             Status = GetStatus(job),
             Result = job.IsCompletedSuccessfully ? job.Result : null
         };
@@ -75,11 +76,7 @@ public class WebhookHostedService : IHostedService
 
     private static string GetStatus(IBackgroundJob job)
     {
-		if (job.IsCanceled)
-		{
-			return "Canceled";
-		}
-		else if (job.IsFaulted)
+		if (job.IsFaulted)
 		{
 			return "Error";
 		}

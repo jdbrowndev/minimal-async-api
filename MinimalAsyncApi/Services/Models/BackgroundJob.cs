@@ -21,6 +21,7 @@ public class BackgroundJob<TResult> : IBackgroundJob
 	public string Name { get; init; }
     public IJob<TResult> Job { get; init; }
 	public Task<TResult> Task { get; init; }
+	public Task WebhookTask { get; set; }
 	public CancellationTokenSource CancellationTokenSource { get; init; }
 
 	public bool IsCompleted => Task.IsCompleted;

@@ -60,58 +60,43 @@ public class JobHostedService : IHostedService, IJobHostedService
 	{
 		var jobId = Guid.NewGuid().ToString();
 		var jobName = job.Name;
+		var cts = new CancellationTokenSource();
 
-		try
+		var backgroundJob = new BackgroundJob<TResult>
 		{
-			var cts = new CancellationTokenSource();
-
-			BackgroundJob<TResult> backgroundJob = null;
-			backgroundJob = new BackgroundJob<TResult>
+			Id = jobId,
+			Name = jobName,
+			Job = job,
+			Task = Task.Run(async () =>
 			{
-				Id = jobId,
-				Name = jobName,
-				Job = job,
-				Task = Task.Run(async () =>
+				try
 				{
-					try
-					{
-						var result = await _jobDispatcher.Dispatch(job, cts.Token);
-						return result;
-					}
-					catch (Exception e)
-					{
-						_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
-						throw;
-					}
-					finally
-					{
-						if (!string.IsNullOrWhiteSpace(webhookUrl))
-						{
-							await _webhookQueue.QueueAsync(new WebhookRequest { Job = backgroundJob, WebhookUrl = webhookUrl });
-						}
-					}
-				}),
-				CancellationTokenSource = cts
-			};
-
-			_jobs.Set(jobId, backgroundJob, new MemoryCacheEntryOptions()
-				.SetAbsoluteExpiration(DateTime.Now.AddHours(12))
-				.RegisterPostEvictionCallback((key, value, reason, state) =>
+					var result = await _jobDispatcher.Dispatch(job, cts.Token);
+					return result;
+				}
+				catch (Exception e)
 				{
-					var backgroundJob = (IBackgroundJob)value;
-					_jobIds.Remove(backgroundJob.Id);
-					backgroundJob.CancellationTokenSource.Cancel();
-				})
-			);
-			_jobIds.Add(jobId);
+					_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
+					throw;
+				}
+			}),
+			CancellationTokenSource = cts
+		};
+		if (!string.IsNullOrWhiteSpace(webhookUrl))
+			backgroundJob.WebhookTask = backgroundJob.Task.ContinueWith(_ => HandleWebhook(backgroundJob, webhookUrl), cancellationToken: cts.Token).Unwrap();
 
-			return jobId;
-		}
-		catch (Exception e)
-		{
-			_logger.LogError(e, $"Failed to start job {jobName} ({jobId})");
-			throw;
-		}
+		_jobs.Set(jobId, backgroundJob, new MemoryCacheEntryOptions()
+			.SetAbsoluteExpiration(DateTime.Now.AddHours(12))
+			.RegisterPostEvictionCallback((key, value, reason, state) =>
+			{
+				var backgroundJob = (IBackgroundJob)value;
+				_jobIds.Remove(backgroundJob.Id);
+				backgroundJob.CancellationTokenSource.Cancel();
+			})
+		);
+		_jobIds.Add(jobId);
+
+		return jobId;
 	}
 
 	public string GetStatus(string jobId)
@@ -166,5 +151,17 @@ public class JobHostedService : IHostedService, IJobHostedService
 			return default;
 
 		return backgroundJob.Task.Result;
+	}
+
+	private async Task HandleWebhook(IBackgroundJob job, string webhookUrl)
+	{		
+		try
+		{
+			await _webhookQueue.QueueAsync(new WebhookRequest { Job = job, WebhookUrl = webhookUrl });
+		}
+		catch (Exception e)
+		{
+			_logger.LogError(e, $"Failed to queue webhook request for {job.Name} ({job.Id})");
+		}
 	}
 }
