@@ -15,6 +15,9 @@ public class FibonacciJobRunner : IJobRunner<FibonacciJob, FibonacciJobResult>
 
         for (var i = 2UL; i <= index; i++)
         {
+            if (cancellationToken.IsCancellationRequested)
+                throw new TaskCanceledException();
+
             var tmp = current;
             current = prev + current;
             prev = tmp;
