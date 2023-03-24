@@ -2,5 +2,5 @@
 
 public class RandomIntJobResult
 {
-	public int Integer { get; set; }
+	public int Integer { get; init; }
 }

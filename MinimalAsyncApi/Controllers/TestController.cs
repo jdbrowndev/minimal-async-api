@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MinimalAsyncApi.Jobs.Error;
+using MinimalAsyncApi.Jobs.Fibonacci;
 using MinimalAsyncApi.Jobs.LongRunning;
 using MinimalAsyncApi.Jobs.RandomInt;
 using MinimalAsyncApi.Services;
@@ -43,6 +44,16 @@ public class TestController : Controller
 	public string GetLongRunning(string webhookUrl = null)
 	{
 		var job = new LongRunningJob();
+
+		var jobId = _jobService.Run(job, webhookUrl);
+
+		return jobId;
+	}
+
+	[HttpGet]
+	public string GetFibonacciNumber(ulong index, string webhookUrl = null)
+	{
+		var job = new FibonacciJob { Index = index }; 
 
 		var jobId = _jobService.Run(job, webhookUrl);
 

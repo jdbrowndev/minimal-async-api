@@ -1,5 +1,6 @@
 using MinimalAsyncApi.Jobs;
 using MinimalAsyncApi.Jobs.Error;
+using MinimalAsyncApi.Jobs.Fibonacci;
 using MinimalAsyncApi.Jobs.LongRunning;
 using MinimalAsyncApi.Jobs.RandomInt;
 using MinimalAsyncApi.Services;
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddTransient<IJobRunner<RandomIntJob, RandomIntJobResult>, RandomIntJobRunner>();
 builder.Services.AddTransient<IJobRunner<ErrorJob, ErrorJobResult>, ErrorJobRunner>();
 builder.Services.AddTransient<IJobRunner<LongRunningJob, LongRunningJobResult>, LongRunningJobRunner>();
+builder.Services.AddTransient<IJobRunner<FibonacciJob, FibonacciJobResult>, FibonacciJobRunner>();
 
 builder.Services.AddTransient<IJobDispatcher, JobDispatcher>();
 builder.Services.AddSingleton<IJobHostedService, JobHostedService>();
