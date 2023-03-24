@@ -1,23 +1,20 @@
-﻿using MinimalAsyncApi.Services;
-
-namespace MinimalAsyncApi.Jobs.RandomInt;
+﻿namespace MinimalAsyncApi.Jobs.RandomInt;
 
 public class RandomIntJobRunner : IJobRunner<RandomIntJob, RandomIntJobResult>
 {
-	private readonly IRandomService _randomService;
+	private readonly Random _random;
 
-	public RandomIntJobRunner(IRandomService randomService)
+	public RandomIntJobRunner(Random random)
 	{
-		_randomService = randomService;
+		_random = random;
 	}
 
 	public async Task<RandomIntJobResult> Run(RandomIntJob job, CancellationToken cancellationToken)
 	{
-		var random = _randomService.Get();
-		var randomInt = random.Next(job.MinValue, job.MaxValue);
+		var randomInt = _random.Next(job.MinValue, job.MaxValue);
 
 		// Wait a random amount of time to simulate an async operation
-		await Task.Delay(random.Next(3000, 9000), cancellationToken);
+		await Task.Delay(_random.Next(3000, 9000), cancellationToken);
 
 		var result = new RandomIntJobResult
 		{
