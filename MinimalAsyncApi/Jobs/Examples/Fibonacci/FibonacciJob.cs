@@ -1,4 +1,4 @@
-namespace MinimalAsyncApi.Jobs.Fibonacci;
+namespace MinimalAsyncApi.Jobs.Examples.Fibonacci;
 
 public class FibonacciJob : IJob<FibonacciJobResult>
 {

@@ -1,19 +1,32 @@
+using MinimalAsyncApi.Jobs.Examples.Error;
+using MinimalAsyncApi.Jobs.Examples.Fibonacci;
 using MinimalAsyncApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services
 
 builder.Services.AddJobServices();
-builder.Services.AddSingleton<Random>(_ => new Random());
-builder.Services.AddControllers();
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Add Async API Endpoints
 
-app.UseAuthorization();
+app.MapGet("/Async/GetStatus", (string jobId, IJobHostedService jobHostedService) => jobHostedService.GetStatus(jobId));
+app.MapGet("/Async/GetResult", (string jobId, IJobHostedService jobHostedService) => jobHostedService.GetResult(jobId));
+app.MapPut("/Async/Cancel", (string jobId, IJobHostedService jobHostedService) => jobHostedService.Cancel(jobId));
 
-app.MapDefaultControllerRoute();
+// Add Example Endpoints
+
+app.MapGet("/Example/GetFibonacciNumber", (ulong index, string webhookUrl, IJobHostedService jobHostedService) => {
+    var job = new FibonacciJob { Index = index }; 
+    var jobId = jobHostedService.Run(job, webhookUrl);
+    return jobId;
+});
+
+app.MapGet("/Example/GetError", (string webhookUrl, IJobHostedService jobHostedService) => {
+    var job = new ErrorJob();
+    var jobId = jobHostedService.Run(job, webhookUrl);
+    return jobId;
+});
 
 app.Run();
