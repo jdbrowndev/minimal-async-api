@@ -1,30 +1,28 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using MinimalAsyncApi.Jobs;
 using MinimalAsyncApi.Services.Models;
+using MinimalAsyncApi.Services.Storage;
 
 namespace MinimalAsyncApi.Services;
 
 public interface IJobHostedService
 {
-	string Run<TResult>(IJob<TResult> job, string webhookUrl = null);
-	string GetStatus(string jobId);
-	bool Cancel(string jobId);
-	object GetResult(string jobId);
-	TResult GetResult<TResult>(string jobId);
+	Task<string> Run<TResult>(IJob<TResult> job, string webhookUrl = null);
+	Task<string> GetStatus(string jobId);
+	Task<bool> Cancel(string jobId);
+	Task<object> GetResult(string jobId);
 }
 
 public class JobHostedService : IHostedService, IJobHostedService
 {
-	private readonly MemoryCache _jobs;
-	private readonly HashSet<string> _jobIds;
+	private readonly IJobStorage _jobs;
 	private readonly IJobDispatcher _jobDispatcher;
 	private readonly IWebhookQueue _webhookQueue;
 	private readonly ILogger<JobHostedService> _logger;
 
-	public JobHostedService(IJobDispatcher jobDispatcher, IWebhookQueue webhookQueue, ILogger<JobHostedService> logger)
+	public JobHostedService(IJobStorage jobs, IJobDispatcher jobDispatcher, IWebhookQueue webhookQueue, ILogger<JobHostedService> logger)
 	{
-		_jobs = new MemoryCache(new MemoryCacheOptions());
-		_jobIds = new HashSet<string>();
+		_jobs = jobs;
 		_jobDispatcher = jobDispatcher;
 		_webhookQueue = webhookQueue;
 		_logger = logger;
@@ -36,27 +34,16 @@ public class JobHostedService : IHostedService, IJobHostedService
 		return Task.CompletedTask;
 	}
 
-	public Task StopAsync(CancellationToken cancellationToken)
+	public async Task StopAsync(CancellationToken cancellationToken)
 	{
 		_logger.LogInformation("JobHostedService stopping...");
 
-		foreach (var id in _jobIds)
-		{
-			_jobs.TryGetValue<IBackgroundJob>(id, out var job);
-			if (job != null)
-			{
-				job.CancellationTokenSource.Cancel();
-			}
-		}
+		await _jobs.CancelAllLocalJobs();
 
 		_logger.LogInformation("JobHostedService stopped");
-		_jobs.Dispose();
-		_jobIds.Clear();
-
-		return Task.CompletedTask;
 	}
 
-	public string Run<TResult>(IJob<TResult> job, string webhookUrl = null)
+	public async Task<string> Run<TResult>(IJob<TResult> job, string webhookUrl = null)
 	{
 		var jobId = Guid.NewGuid().ToString();
 		var jobName = job.Name;
@@ -67,41 +54,34 @@ public class JobHostedService : IHostedService, IJobHostedService
 			Id = jobId,
 			Name = jobName,
 			Job = job,
-			Task = Task.Run(async () =>
-			{
-				try
-				{
-					var result = await _jobDispatcher.Dispatch(job, cts.Token);
-					return result;
-				}
-				catch (Exception e)
-				{
-					_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
-					throw;
-				}
-			}),
 			CancellationTokenSource = cts
 		};
+		backgroundJob.Task = Task.Run(async () =>
+		{
+			try
+			{
+				var jobDispatch = _jobDispatcher.Dispatch(job, cts.Token);
+				var result = await jobDispatch.WaitAsync(TimeSpan.FromHours(12));
+				return result;
+			}
+			catch (Exception e)
+			{
+				_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
+				throw;
+			}
+		});
+		backgroundJob.UpdateStorageTask = backgroundJob.Task.ContinueWith(_ => _jobs.SetJob(backgroundJob)).Unwrap();
 		if (!string.IsNullOrWhiteSpace(webhookUrl))
 			backgroundJob.WebhookTask = backgroundJob.Task.ContinueWith(_ => HandleWebhook(backgroundJob, webhookUrl), cancellationToken: cts.Token).Unwrap();
 
-		_jobs.Set(jobId, backgroundJob, new MemoryCacheEntryOptions()
-			.SetAbsoluteExpiration(DateTime.Now.AddHours(12))
-			.RegisterPostEvictionCallback((key, value, reason, state) =>
-			{
-				var backgroundJob = (IBackgroundJob)value;
-				_jobIds.Remove(backgroundJob.Id);
-				backgroundJob.CancellationTokenSource.Cancel();
-			})
-		);
-		_jobIds.Add(jobId);
+		await _jobs.SetJob(backgroundJob);
 
 		return jobId;
 	}
 
-	public string GetStatus(string jobId)
+	public async Task<string> GetStatus(string jobId)
 	{
-		_jobs.TryGetValue<IBackgroundJob>(jobId, out var backgroundJob);
+		var backgroundJob = await _jobs.GetJob(jobId);
 
 		if (backgroundJob == null)
 		{
@@ -123,34 +103,16 @@ public class JobHostedService : IHostedService, IJobHostedService
 		return "Done";
 	}
 
-	public bool Cancel(string jobId)
+	public async Task<bool> Cancel(string jobId)
 	{
-		_jobs.TryGetValue<IBackgroundJob>(jobId, out var backgroundJob);
-		if (backgroundJob == null || backgroundJob.IsCompleted)
-			return false;
-
-		backgroundJob.CancellationTokenSource.Cancel();
-		return true;
+		var result = await _jobs.CancelJob(jobId);
+		return result;
 	}
 
-	public object GetResult(string jobId)
+	public async Task<object> GetResult(string jobId)
 	{
-		_jobs.TryGetValue<IBackgroundJob>(jobId, out var backgroundJob);
-
-		if (backgroundJob == null || !backgroundJob.IsCompletedSuccessfully)
-			return null;
-
-		return backgroundJob.Result;
-	}
-
-	public TResult GetResult<TResult>(string jobId)
-	{
-		_jobs.TryGetValue<BackgroundJob<TResult>>(jobId, out var backgroundJob);
-
-		if (backgroundJob == null || !backgroundJob.IsCompletedSuccessfully)
-			return default;
-
-		return backgroundJob.Task.Result;
+		var backgroundJob = await _jobs.GetJob(jobId);
+		return backgroundJob?.Result;
 	}
 
 	private async Task HandleWebhook(IBackgroundJob job, string webhookUrl)
