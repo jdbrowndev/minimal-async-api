@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Caching.Memory;
-using MinimalAsyncApi.Jobs;
+﻿using MinimalAsyncApi.Jobs;
 using MinimalAsyncApi.Services.Models;
 using MinimalAsyncApi.Services.Storage;
 
@@ -46,7 +45,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 	public async Task<string> Run<TResult>(IJob<TResult> job, string webhookUrl = null)
 	{
 		var jobId = Guid.NewGuid().ToString();
-		var jobName = job.Name;
+		var jobName = job.GetType().FullName;
 		var cts = new CancellationTokenSource();
 
 		var backgroundJob = new BackgroundJob<TResult>
@@ -54,22 +53,22 @@ public class JobHostedService : IHostedService, IJobHostedService
 			Id = jobId,
 			Name = jobName,
 			Job = job,
+			Task = Task.Run(async () =>
+			{
+				try
+				{
+					var jobDispatch = _jobDispatcher.Dispatch(job, cts.Token);
+					var result = await jobDispatch.WaitAsync(TimeSpan.FromHours(12));
+					return result;
+				}
+				catch (Exception e)
+				{
+					_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
+					throw;
+				}
+			}),
 			CancellationTokenSource = cts
 		};
-		backgroundJob.Task = Task.Run(async () =>
-		{
-			try
-			{
-				var jobDispatch = _jobDispatcher.Dispatch(job, cts.Token);
-				var result = await jobDispatch.WaitAsync(TimeSpan.FromHours(12));
-				return result;
-			}
-			catch (Exception e)
-			{
-				_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
-				throw;
-			}
-		});
 		backgroundJob.UpdateStorageTask = backgroundJob.Task.ContinueWith(_ => _jobs.SetJob(backgroundJob)).Unwrap();
 		if (!string.IsNullOrWhiteSpace(webhookUrl))
 			backgroundJob.WebhookTask = backgroundJob.Task.ContinueWith(_ => HandleWebhook(backgroundJob, webhookUrl), cancellationToken: cts.Token).Unwrap();

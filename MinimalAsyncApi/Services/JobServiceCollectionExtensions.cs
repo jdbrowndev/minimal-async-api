@@ -24,23 +24,9 @@ public static class JobServiceCollectionExtensions
 		services.AddSingleton<IConnectionMultiplexer>(provider =>
 		{
 			var connectionString = configuration.GetValue<string>("Redis");
-			var logger = provider.GetService<ILogger<Program>>();
-			if (string.IsNullOrWhiteSpace(connectionString))
-			{
-				logger.LogInformation("Using in-memory job storage");
-				return null;
-			}
-			else
-			{
-				logger.LogInformation("Using Redis job storage");
-				return ConnectionMultiplexer.Connect(connectionString);
-			}
+			return ConnectionMultiplexer.Connect(connectionString);
 		});
-		services.AddSingleton<IJobStorage>(ctx =>
-		{
-			var redis = ctx.GetService<IConnectionMultiplexer>();
-			return redis == null ? new MemoryCacheJobStorage() : new RedisJobStorage(redis);
-		});
+		services.AddSingleton<IJobStorage, RedisJobStorage>();
 
 		// Add jobs
 		services.AddTransient<IJobRunner<FibonacciJob, FibonacciJobResult>, FibonacciJobRunner>();

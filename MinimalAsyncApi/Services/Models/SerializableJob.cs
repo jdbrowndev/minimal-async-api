@@ -1,12 +1,12 @@
 ﻿namespace MinimalAsyncApi.Services.Models;
 
-public class RedisJob
+public class SerializableJob
 {
-    public RedisJob()
+    public SerializableJob()
     {
     }
 
-	public RedisJob(IBackgroundJob job)
+	public SerializableJob(IBackgroundJob job)
 	{
 		Id = job.Id;
 		Name = job.Name;
