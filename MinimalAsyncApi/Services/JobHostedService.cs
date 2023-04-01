@@ -8,18 +8,18 @@ public interface IJobHostedService
 {
 	Task<string> Run<TResult>(IJob<TResult> job, string webhookUrl = null);
 	Task<string> GetStatus(string jobId);
-	Task<bool> Cancel(string jobId);
+	Task<string> Cancel(string jobId);
 	Task<object> GetResult(string jobId);
 }
 
 public class JobHostedService : IHostedService, IJobHostedService
 {
-	private readonly IJobStorage _jobs;
+	private readonly IRedisJobStorage _jobs;
 	private readonly IJobDispatcher _jobDispatcher;
 	private readonly IWebhookQueue _webhookQueue;
 	private readonly ILogger<JobHostedService> _logger;
 
-	public JobHostedService(IJobStorage jobs, IJobDispatcher jobDispatcher, IWebhookQueue webhookQueue, ILogger<JobHostedService> logger)
+	public JobHostedService(IRedisJobStorage jobs, IJobDispatcher jobDispatcher, IWebhookQueue webhookQueue, ILogger<JobHostedService> logger)
 	{
 		_jobs = jobs;
 		_jobDispatcher = jobDispatcher;
@@ -102,7 +102,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 		return "Done";
 	}
 
-	public async Task<bool> Cancel(string jobId)
+	public async Task<string> Cancel(string jobId)
 	{
 		var result = await _jobs.CancelJob(jobId);
 		return result;

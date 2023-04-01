@@ -1,12 +1,19 @@
 ﻿using MinimalAsyncApi.Services.Models;
-using MinimalAsyncApi.Services.Storage;
 using StackExchange.Redis;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-namespace MinimalAsyncApi.Services.Redis;
+namespace MinimalAsyncApi.Services.Storage;
 
-public class RedisJobStorage : IJobStorage
+public interface IRedisJobStorage
+{
+	Task<SerializableJob> GetJob(string jobId);
+	Task<bool> SetJob(IBackgroundJob job);
+	Task<string> CancelJob(string jobId, bool localOnly = false);
+	Task CancelAllLocalJobs();
+}
+
+public class RedisJobStorage : IRedisJobStorage
 {
 	private readonly IConnectionMultiplexer _redis;
 	private readonly ConcurrentDictionary<string, IBackgroundJob> _jobs;
@@ -47,22 +54,27 @@ public class RedisJobStorage : IJobStorage
 		return result;
 	}
 
-	public async Task<bool> CancelJob(string jobId)
+	public async Task<string> CancelJob(string jobId, bool localOnly = false)
 	{
 		var isLocal = _jobs.TryGetValue(jobId, out var job);
 		if (isLocal)
 		{
 			if (job.IsCompleted)
-				return false;
+				return "Completed";
 			else
+			{
 				job.CancellationTokenSource.Cancel();
-		}
-		else
-		{
-			// todo handle Redis case
+				return "Canceled";
+			}
 		}
 
-		return true;
+		if (localOnly)
+			return "Not Local";
+
+		var subscriber = _redis.GetSubscriber();
+		await subscriber.PublishAsync("cancel", jobId);
+
+		return "Cancellation Requested";
 	}
 
 	public async Task CancelAllLocalJobs()
