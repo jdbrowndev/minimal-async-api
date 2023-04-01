@@ -1,15 +1,16 @@
 using MinimalAsyncApi.Jobs;
 using MinimalAsyncApi.Jobs.Examples.Error;
 using MinimalAsyncApi.Jobs.Examples.Fibonacci;
-using MinimalAsyncApi.Services.Models;
-using MinimalAsyncApi.Services.Storage;
+using MinimalAsyncApi.Services.Jobs;
+using MinimalAsyncApi.Services.Redis;
+using MinimalAsyncApi.Services.Webhooks;
 using StackExchange.Redis;
 
 namespace MinimalAsyncApi.Services;
 
-public static class JobServiceCollectionExtensions
+public static class ServiceCollectionExtensions
 {
-	public static void AddJobServices(this IServiceCollection services, IConfiguration configuration)
+	public static void AddMinimalAsyncApiServices(this IServiceCollection services, IConfiguration configuration)
 	{
 		// Add hosted services
 		services.AddTransient<IJobDispatcher, JobDispatcher>();

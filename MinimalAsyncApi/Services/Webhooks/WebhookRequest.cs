@@ -1,4 +1,6 @@
-namespace MinimalAsyncApi.Services.Models;
+using MinimalAsyncApi.Services.Jobs;
+
+namespace MinimalAsyncApi.Services.Webhooks;
 
 public class WebhookRequest
 {

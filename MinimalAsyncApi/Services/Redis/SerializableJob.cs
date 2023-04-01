@@ -1,6 +1,6 @@
-﻿using MinimalAsyncApi.Services.Models;
+﻿using MinimalAsyncApi.Services.Jobs;
 
-namespace MinimalAsyncApi.Services.Storage;
+namespace MinimalAsyncApi.Services.Redis;
 
 public class SerializableJob
 {

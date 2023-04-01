@@ -1,6 +1,6 @@
-using MinimalAsyncApi.Services.Models;
+using MinimalAsyncApi.Services.Jobs;
 
-namespace MinimalAsyncApi.Services;
+namespace MinimalAsyncApi.Services.Webhooks;
 
 public class WebhookHostedService : IHostedService
 {
@@ -15,7 +15,7 @@ public class WebhookHostedService : IHostedService
         _logger = logger;
         _cts = new CancellationTokenSource();
     }
-    
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("WebhookHostedService started");
@@ -55,7 +55,7 @@ public class WebhookHostedService : IHostedService
         var webhookUrl = request.WebhookUrl;
 
         var uri = new Uri(webhookUrl);
-        if (!new [] { Uri.UriSchemeHttp, Uri.UriSchemeHttps }.Contains(uri.Scheme))
+        if (!new[] { Uri.UriSchemeHttp, Uri.UriSchemeHttps }.Contains(uri.Scheme))
             throw new ArgumentException($"Webhook url {webhookUrl} for job {job.Name} ({job.Id}) must be HTTP/HTTPS");
 
         using var httpClient = new HttpClient();
@@ -76,11 +76,11 @@ public class WebhookHostedService : IHostedService
 
     private static string GetStatus(IBackgroundJob job)
     {
-		if (job.IsFaulted)
-		{
-			return "Error";
-		}
+        if (job.IsFaulted)
+        {
+            return "Error";
+        }
 
-		return "Done";
+        return "Done";
     }
 }

@@ -1,6 +1,6 @@
 using System.Threading.Channels;
 
-namespace MinimalAsyncApi.Services.Models;
+namespace MinimalAsyncApi.Services.Webhooks;
 
 public interface IWebhookQueue
 {

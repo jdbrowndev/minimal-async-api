@@ -1,12 +1,13 @@
 using MinimalAsyncApi.Jobs.Examples.Error;
 using MinimalAsyncApi.Jobs.Examples.Fibonacci;
 using MinimalAsyncApi.Services;
+using MinimalAsyncApi.Services.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 
-builder.Services.AddJobServices(builder.Configuration);
+builder.Services.AddMinimalAsyncApiServices(builder.Configuration);
 var app = builder.Build();
 
 // Add Async API endpoints

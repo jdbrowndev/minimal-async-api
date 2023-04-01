@@ -1,4 +1,4 @@
-namespace MinimalAsyncApi.Services.Models;
+namespace MinimalAsyncApi.Services.Webhooks;
 
 public class WebhookResult
 {
