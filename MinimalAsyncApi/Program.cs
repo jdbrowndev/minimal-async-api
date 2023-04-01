@@ -18,7 +18,7 @@ app.MapPut("/Async/Cancel", (string jobId, IJobHostedService jobHostedService) =
 
 // Add Example API endpoints
 
-app.MapGet("/Example/GetFibonacciNumber", async (ulong index, string webhookUrl, IJobHostedService jobHostedService) => {
+app.MapGet("/Example/GetFibonacciNumber", async (string index, string webhookUrl, IJobHostedService jobHostedService) => {
     var job = new FibonacciJob { Index = index }; 
     var jobId = await jobHostedService.Run(job, webhookUrl);
     return jobId;

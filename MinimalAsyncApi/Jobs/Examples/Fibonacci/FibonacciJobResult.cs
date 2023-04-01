@@ -2,5 +2,5 @@ namespace MinimalAsyncApi.Jobs.Examples.Fibonacci;
 
 public class FibonacciJobResult
 {
-    public ulong FibonacciNumber { get; init; }
+    public string FibonacciNumber { get; init; }
 }
