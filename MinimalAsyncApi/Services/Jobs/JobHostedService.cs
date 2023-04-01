@@ -69,7 +69,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 			}),
 			CancellationTokenSource = cts
 		};
-		backgroundJob.UpdateStorageTask = backgroundJob.Task.ContinueWith(_ => _jobs.SetJob(backgroundJob)).Unwrap();
+		backgroundJob.UpdateStorageTask = backgroundJob.Task.ContinueWith(_ => UpdateStorage(backgroundJob)).Unwrap();
 		if (!string.IsNullOrWhiteSpace(webhookUrl))
 			backgroundJob.WebhookTask = backgroundJob.Task.ContinueWith(_ => HandleWebhook(backgroundJob, webhookUrl), cancellationToken: cts.Token).Unwrap();
 
@@ -112,6 +112,18 @@ public class JobHostedService : IHostedService, IJobHostedService
 	{
 		var backgroundJob = await _jobs.GetJob(jobId);
 		return backgroundJob?.Result;
+	}
+
+	private async Task UpdateStorage(IBackgroundJob job)
+	{
+		try
+		{
+			await _jobs.SetJob(job);
+		}
+		catch (Exception e)
+		{
+			_logger.LogError(e, $"Failed to update storage on task complete for {job.Name} ({job.Id})");
+		}
 	}
 
 	private async Task HandleWebhook(IBackgroundJob job, string webhookUrl)
