@@ -2,48 +2,52 @@ version: '3'
 services:
   redis:
     image: redis
-    container_name: minimal-async-api-redis
     ports:
     - 6379:6379
   api1:
     image: minimal-async-api
-    build: ./MinimalAsyncApi
-    container_name: minimal-async-api1
+    build:
+      context: .
+      dockerfile: MinimalAsyncApi/Dockerfile
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     - ASPNETCORE_URLS=http://*:5054
-    - Redis=localhost:6379
+    - Redis=redis:6379
+    - Logging__Console__FormatterName=Simple
     ports:
     - "5054:5054"
     depends_on:
     - redis
   api2:
     image: minimal-async-api
-    build: ./MinimalAsyncApi
-    container_name: minimal-async-api2
+    build:
+      context: .
+      dockerfile: MinimalAsyncApi/Dockerfile
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     - ASPNETCORE_URLS=http://*:5055
-    - Redis=localhost:6379
+    - Redis=redis:6379
+    - Logging__Console__FormatterName=Simple
     ports:
     - "5055:5055"
     depends_on:
     - redis
   api3:
     image: minimal-async-api
-    build: ./MinimalAsyncApi
-    container_name: minimal-async-api3
+    build:
+      context: .
+      dockerfile: MinimalAsyncApi/Dockerfile
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     - ASPNETCORE_URLS=http://*:5056
-    - Redis=localhost:6379
+    - Redis=redis:6379
+    - Logging__Console__FormatterName=Simple
     ports:
     - "5056:5056"
     depends_on:
     - redis
   nginx:
     build: ./nginx
-    container_name: minimal-async-api-nginx
     ports:
     - "8080:80"
     depends_on:
