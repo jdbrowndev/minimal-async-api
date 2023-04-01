@@ -4,6 +4,6 @@ namespace MinimalAsyncApi.Services.Webhooks;
 
 public class WebhookRequest
 {
-    public IBackgroundJob Job { get; init; }
-    public string WebhookUrl { get; init; }
+	public IBackgroundJob Job { get; init; }
+	public string WebhookUrl { get; init; }
 }
