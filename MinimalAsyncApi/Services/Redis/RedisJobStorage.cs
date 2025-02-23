@@ -16,12 +16,14 @@ public interface IRedisJobStorage
 public class RedisJobStorage : IRedisJobStorage
 {
 	private readonly IConnectionMultiplexer _redis;
+	private readonly RedisChannel _cancelChannel;
 	private readonly ConcurrentDictionary<string, IBackgroundJob> _jobs;
 	private readonly JsonSerializerOptions _serializerOptions;
 
-	public RedisJobStorage(IConnectionMultiplexer redis)
+	public RedisJobStorage(IConnectionMultiplexer redis, IRedisChannelFactory channelFactory)
 	{
 		_redis = redis;
+		_cancelChannel = channelFactory.GetCancelChannel();
 		_jobs = new ConcurrentDictionary<string, IBackgroundJob>();
 		_serializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 	}
@@ -72,7 +74,7 @@ public class RedisJobStorage : IRedisJobStorage
 			return "Not Local";
 
 		var subscriber = _redis.GetSubscriber();
-		await subscriber.PublishAsync("cancel", jobId);
+		await subscriber.PublishAsync(_cancelChannel, jobId);
 
 		return "Cancellation Requested";
 	}

@@ -23,10 +23,7 @@ public class WebhookQueue : IWebhookQueue
 
 	public async Task QueueAsync(WebhookRequest request)
 	{
-		if (request == null)
-		{
-			throw new ArgumentNullException(nameof(request));
-		}
+		ArgumentNullException.ThrowIfNull(request);
 
 		await _queue.Writer.WriteAsync(request);
 	}

@@ -6,14 +6,16 @@ public class RedisSubscriptionHostedService : IHostedService
 {
 	private readonly IConnectionMultiplexer _redis;
 	private readonly IRedisJobStorage _jobStorage;
+	private readonly RedisChannel _cancelChannel;
 	private readonly ILogger<RedisSubscriptionHostedService> _logger;
 	private ISubscriber _subscriber;
 	private Task _subscribeTask;
 
-	public RedisSubscriptionHostedService(IConnectionMultiplexer redis, IRedisJobStorage jobStorage, ILogger<RedisSubscriptionHostedService> logger)
+	public RedisSubscriptionHostedService(IConnectionMultiplexer redis, IRedisJobStorage jobStorage, IRedisChannelFactory channelFactory, ILogger<RedisSubscriptionHostedService> logger)
 	{
 		_redis = redis;
 		_jobStorage = jobStorage;
+		_cancelChannel = channelFactory.GetCancelChannel();
 		_logger = logger;
 	}
 
@@ -22,7 +24,7 @@ public class RedisSubscriptionHostedService : IHostedService
 		_logger.LogInformation("RedisSubscriptionHostedService started");
 
 		_subscriber = _redis.GetSubscriber();
-		_subscribeTask = _subscriber.SubscribeAsync("cancel", async (channel, message) =>
+		_subscribeTask = _subscriber.SubscribeAsync(_cancelChannel, async (channel, message) =>
 		{
 			try
 			{

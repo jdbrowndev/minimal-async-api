@@ -70,7 +70,7 @@ public class WebhookHostedService : IHostedService
 
 		if (!response.IsSuccessStatusCode)
 		{
-			_logger.LogWarning($"Webhook url {webhookUrl} for job {job.Name} ({job.Id}) returned an unsuccessful status code: {response.StatusCode:D} {response.StatusCode}");
+			_logger.LogWarning("Webhook url {webhookUrl} for job {jobName} ({jobId}) returned an unsuccessful status code: {statusCode} {statusCodeName}", webhookUrl, job.Name, job.Id, response.StatusCode.ToString("D"), response.StatusCode);
 		}
 	}
 

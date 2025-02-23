@@ -27,6 +27,7 @@ public static class ServiceCollectionExtensions
 			return ConnectionMultiplexer.Connect(connectionString);
 		});
 		services.AddSingleton<IRedisJobStorage, RedisJobStorage>();
+		services.AddTransient<IRedisChannelFactory, RedisChannelFactory>();
 
 		// Add jobs
 		services.AddTransient<IJobRunner<FibonacciJob, FibonacciJobResult>, FibonacciJobRunner>();

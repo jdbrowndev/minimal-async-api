@@ -122,7 +122,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 		}
 		catch (Exception e)
 		{
-			_logger.LogError(e, $"Failed to update storage on task complete for {job.Name} ({job.Id})");
+			_logger.LogError(e, "Failed to update storage on task complete for {jobName} ({jobId})", job.Name, job.Id);
 		}
 	}
 
@@ -134,7 +134,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 		}
 		catch (Exception e)
 		{
-			_logger.LogError(e, $"Failed to queue webhook request for {job.Name} ({job.Id})");
+			_logger.LogError(e, "Failed to queue webhook request for {jobName} ({jobId})", job.Name, job.Id);
 		}
 	}
 }
