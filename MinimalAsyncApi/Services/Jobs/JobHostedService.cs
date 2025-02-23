@@ -63,7 +63,7 @@ public class JobHostedService : IHostedService, IJobHostedService
 				}
 				catch (Exception e)
 				{
-					_logger.LogError(e, $"{jobName} ({jobId}) threw an unhandled exception");
+					_logger.LogError(e, "{jobName} ({jobId}) threw an unhandled exception", jobName, jobId);
 					throw;
 				}
 			}),
